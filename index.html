@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxury Vinyl Player - High Contrast</title>
+    <style>
+        :root {
+            /* 黑金配色定义 */
+            --bg-dark: #050505;
+            --bg-light: #242426; /* 稍微提亮的深炭灰 */
+            --glass-bg: rgba(20, 20, 20, 0.7);
+            --glass-border: rgba(197, 160, 89, 0.3);
+            --primary-gold: #c5a059;
+            --highlight-gold: #fddb92;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            /* 优化点1：背景不再是死黑，而是带有层次的径向渐变 */
+            background: radial-gradient(circle at center, var(--bg-light) 0%, #111 40%, #000 100%);
+            color: white;
+            font-family: 'Times New Roman', serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- 动态氛围背景 --- */
+        #ambient-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* 初始状态几乎透明，让body的渐变透出来 */
+            background: radial-gradient(circle at center, rgba(197, 160, 89, 0.05), transparent 70%);
+            z-index: -2;
+            transition: background 0.2s ease;
+        }
+        
+        #noise-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .player-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1200px;
+        }
+
+        #visualizer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+            /* 稍微增强亮度以对抗背景的亮度提升 */
+            filter: blur(1px) brightness(1.3); 
+        }
+
+        /* --- 黑胶唱片主体 --- */
+        .vinyl-wrapper {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            z-index: 10;
+            border-radius: 50%;
+            
+            /* 优化点2：多重阴影 + 微弱边缘光 */
+            /* 第一层：微弱的白边，勾勒轮廓 */
+            /* 第二层：深色投影，制造悬浮感 */
+            box-shadow: 
+                0 0 0 1px rgba(255, 255, 255, 0.08), 
+                0 20px 50px rgba(0,0,0,0.8),
+                0 50px 100px rgba(0,0,0,0.9);
+                
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+        
+        .vinyl-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .vinyl-record {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #0f0f0f; /* 唱片本体稍微浅一点点，不是死黑 */
+            background-image: repeating-radial-gradient(
+                #0f0f0f 0, 
+                #0f0f0f 2px, 
+                #181818 3px, 
+                #181818 4px
+            );
+            position: relative;
+            overflow: hidden;
+            /* 增加一个内阴影，让边缘看起来更有厚度 */
+            box-shadow: inset 0 0 20px rgba(0,0,0,1);
+        }
+
+        /* 光泽反射 */
+        .vinyl-reflection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 45deg,
+                transparent 0%,
+                rgba(255, 240, 200, 0.02) 10%,
+                rgba(255, 240, 200, 0.08) 20%, 
+                rgba(255, 240, 200, 0.02) 30%,
+                transparent 40%,
+                transparent 60%,
+                rgba(255, 240, 200, 0.02) 70%,
+                rgba(255, 240, 200, 0.08) 80%,
+                rgba(255, 240, 200, 0.02) 90%,
+                transparent 100%
+            );
+            z-index: 5;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        /* --- 方案 B: 黑金奢华标签 --- */
+        .vinyl-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 38%;
+            height: 38%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #2a2a2a 0%, #050505 100%);
+            border: 3px solid #1a1a1a;
+            box-shadow: inset 0 0 10px rgba(0,0,0,1);
+            z-index: 6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .label-rings {
+            position: absolute;
+            width: 88%;
+            height: 88%;
+            border-radius: 50%;
+            border: 1px solid var(--primary-gold);
+            opacity: 0.6;
+            box-shadow: inset 0 0 0 3px rgba(197, 160, 89, 0.1);
+        }
+
+        .label-decoration {
+            position: absolute;
+            width: 40%;
+            height: 1px;
+            background: var(--primary-gold);
+            top: 50%;
+            opacity: 0.4;
+        }
+
+        .label-text {
+            position: absolute;
+            color: var(--primary-gold);
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .label-text.top { top: 20%; }
+        .label-text.bottom { bottom: 20%; }
+        
+        .label-logo {
+            position: absolute;
+            top: 35%;
+            font-size: 14px;
+            color: var(--primary-gold);
+            opacity: 0.8;
+            font-style: italic;
+            font-family: serif;
+        }
+
+        .vinyl-label::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, #e0e0e0, #888);
+            border-radius: 50%;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        /* --- 唱臂系统 --- */
+        .tonearm-assembly {
+            position: absolute;
+            top: -50px;
+            right: -100px;
+            width: 140px;
+            height: 340px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .tonearm-pivot {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle at 30% 30%, #444, #111);
+            border-radius: 50%;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .tonearm-stick {
+            position: absolute;
+            top: 45px;
+            left: 80px;
+            width: 10px;
+            height: 260px;
+            background: linear-gradient(90deg, #555, #222, #444); 
+            transform-origin: top center;
+            transform: rotate(25deg);
+            border-radius: 6px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+            transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .tonearm-head {
+            position: absolute;
+            bottom: -20px;
+            left: -10px;
+            width: 32px;
+            height: 55px;
+            background: #111;
+            transform: rotate(15deg);
+            border-radius: 2px;
+            border: 1px solid #333;
+        }
+
+        /* --- UI 控制栏 --- */
+        .controls-area {
+            position: absolute;
+            bottom: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 15px 35px;
+            border-radius: 5px;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            transition: all 0.3s;
+        }
+        
+        .controls-area:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-gold);
+            background: rgba(30, 30, 30, 0.8);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--primary-gold);
+            font-size: 20px;
+            cursor: pointer;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 10px rgba(197, 160, 89, 0.2);
+            transform: scale(1.05);
+        }
+
+        .btn-main {
+            width: 55px;
+            height: 55px;
+            color: white;
+            background: linear-gradient(135deg, #c5a059, #8f7238);
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .btn-main:hover {
+            background: linear-gradient(135deg, #dcc082, #a88a4d);
+            box-shadow: 0 0 20px rgba(197, 160, 89, 0.6);
+            transform: scale(1.1);
+        }
+
+        input[type="range"] {
+            width: 100px;
+            accent-color: var(--primary-gold);
+            background: rgba(255,255,255,0.1);
+            height: 2px;
+        }
+
+        .track-info {
+            position: absolute;
+            top: 50px;
+            text-align: center;
+            z-index: 50;
+        }
+        .track-title { 
+            font-size: 26px; 
+            letter-spacing: 3px; 
+            margin-bottom: 8px; 
+            text-transform: uppercase; 
+            color: var(--primary-gold);
+            font-family: 'Times New Roman', serif;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+        .track-status { 
+            font-size: 10px; 
+            color: #666; 
+            font-family: sans-serif; 
+            letter-spacing: 4px; 
+        }
+
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="ambient-bg"></div>
+    <div id="noise-overlay"></div>
+
+    <div class="track-info">
+        <div class="track-title" id="trackTitle">Golden Era</div>
+        <div class="track-status" id="trackStatus">HIFI AUDIO SYSTEM</div>
+    </div>
+
+    <canvas id="visualizer"></canvas>
+
+    <div class="player-container">
+        <div class="vinyl-wrapper" id="vinylWrapper">
+            <div class="vinyl-record" id="record">
+                <div class="vinyl-reflection"></div>
+                <div class="vinyl-label" id="vinylLabel">
+                    <div class="label-rings"></div>
+                    <div class="label-logo">Premium Sound</div>
+                    <div class="label-text top">High Fidelity</div>
+                    <div class="label-decoration"></div>
+                    <div class="label-text bottom">33 &frac13; RPM</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tonearm-assembly">
+            <div class="tonearm-pivot"></div>
+            <div class="tonearm-stick" id="tonearmStick">
+                <div class="tonearm-head"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-area">
+        <input type="file" id="file-input" accept="audio/*">
+        <button class="btn" title="Load Music" onclick="document.getElementById('file-input').click()">📂</button>
+        
+        <button class="btn btn-main" id="playBtn">▶</button>
+        
+        <span style="font-size: 10px; color: var(--primary-gold);">VOL</span>
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7">
+    </div>
+
+    <script>
+        let audioCtx, audioSource, analyser, gainNode;
+        let isPlaying = false;
+        let isDragging = false;
+        let rotationAngle = 0;
+        let rotationSpeed = 1.8; 
+        
+        const audioElement = new Audio();
+        audioElement.crossOrigin = "anonymous";
+        audioElement.loop = true;
+
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const recordElement = document.getElementById('record');
+        const vinylWrapper = document.getElementById('vinylWrapper');
+        const tonearmStick = document.getElementById('tonearmStick');
+        const playBtn = document.getElementById('playBtn');
+        const ambientBg = document.getElementById('ambient-bg');
+        const trackTitle = document.getElementById('trackTitle');
+        const trackStatus = document.getElementById('trackStatus');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.85; 
+
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.7;
+
+                audioSource = audioCtx.createMediaElementSource(audioElement);
+                audioSource.connect(analyser);
+                analyser.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audioElement.src = url;
+                trackTitle.innerText = file.name.replace(/\.[^/.]+$/, "").substring(0, 25);
+                trackStatus.innerText = "SOURCE LOADED";
+                isPlaying = false;
+                updateUIState();
+            }
+        });
+
+        playBtn.addEventListener('click', () => {
+            if(!audioElement.src) return alert("Please load a song first.");
+            initAudio();
+            
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+            } else {
+                audioElement.play();
+                isPlaying = true;
+                loopAnimation();
+            }
+            updateUIState();
+        });
+
+        function updateUIState() {
+            if (isPlaying) {
+                playBtn.innerText = "II";
+                tonearmStick.style.transform = "rotate(30deg)";
+                trackStatus.innerText = "PLAYBACK ACTIVE";
+                trackStatus.style.color = "#c5a059";
+            } else {
+                playBtn.innerText = "▶";
+                tonearmStick.style.transform = "rotate(0deg)";
+                trackStatus.innerText = "SYSTEM STANDBY";
+                trackStatus.style.color = "#666";
+            }
+        }
+
+        document.getElementById('volume').addEventListener('input', (e) => {
+            if(gainNode) gainNode.gain.value = e.target.value;
+        });
+
+        vinylWrapper.addEventListener('mousedown', (e) => {
+            if(!isPlaying) return;
+            isDragging = true;
+            gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            vinylWrapper.style.transform = "scale(0.97)";
+        });
+
+        document.addEventListener('mouseup', () => {
+            if(isDragging && isPlaying) {
+                isDragging = false;
+                gainNode.gain.setTargetAtTime(document.getElementById('volume').value, audioCtx.currentTime, 0.1);
+                vinylWrapper.style.transform = "scale(1)";
+            }
+        });
+        
+        const dataArray = new Uint8Array(256);
+
+        function loopAnimation() {
+            if (!isPlaying) return;
+            requestAnimationFrame(loopAnimation);
+
+            if (!isDragging) {
+                rotationAngle += rotationSpeed;
+                recordElement.style.transform = `rotate(${rotationAngle}deg)`;
+            }
+
+            analyser.getByteFrequencyData(dataArray);
+
+            // 背景清理颜色跟随新的背景色
+            // 使用半透明的深灰色，而不是纯黑，确保渐变背景能透出来
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // 先完全清空
+            
+            // 为了拖尾效果，我们手动画一个半透明的蒙版，而不是fillRect
+            // 这里因为背景是复杂的渐变，用clearRect更干净，或者用极淡的fade
+            // 简单处理：不使用拖尾了，因为背景有渐变，拖尾会弄脏背景。
+            // 如果想要拖尾，必须用复杂的 globalCompositeOperation，这里为了视觉清晰，去掉了拖尾
+            // 或者：仅仅绘制频谱，不清除背景？不行，必须清除。
+            
+            // --- 优化的绘制逻辑 ---
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            let radius = 200; 
+
+            // 低音计算
+            let bassEnergy = 0;
+            for(let i = 0; i < 10; i++) bassEnergy += dataArray[i];
+            bassEnergy = bassEnergy / 10;
+            
+            const scale = 1 + (bassEnergy / 255) * 0.08; 
+            if(!isDragging) vinylWrapper.style.transform = `scale(${scale})`;
+
+            // 动态光晕 (叠加在渐变背景之上)
+            const light = (bassEnergy / 255) * 0.6; // 透明度
+            // 只改变透明度，不改变颜色，确保和背景融合
+            ambientBg.style.background = `radial-gradient(circle at center, rgba(197, 160, 89, ${light}), transparent 70%)`;
+
+            // 绘制金色频谱
+            ctx.lineWidth = 2; 
+            ctx.lineCap = 'butt'; 
+            const bars = 120;
+            const step = Math.floor(dataArray.length / bars);
+
+            for (let i = 0; i < bars; i++) {
+                const value = dataArray[i * step];
+                const percent = value / 255;
+                const barLen = percent * 100;
+                const rad = (Math.PI * 2 / bars) * i;
+                
+                const barHue = 35 + percent * 15; 
+                const barLightness = 40 + percent * 60; 
+                const barColor = `hsl(${barHue}, 80%, ${barLightness}%)`;
+
+                ctx.strokeStyle = barColor;
+                ctx.shadowBlur = percent * 15; 
+                ctx.shadowColor = '#ffb300';
+
+                ctx.beginPath();
+                const x1 = cx + Math.cos(rad) * radius;
+                const y1 = cy + Math.sin(rad) * radius;
+                const x2 = cx + Math.cos(rad) * (radius + barLen);
+                const y2 = cy + Math.sin(rad) * (radius + barLen);
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            if(bassEnergy > 200) createParticles(cx, cy);
+            updateParticles();
+        }
+
+        let particles = [];
+        function createParticles(x, y) {
+            for(let i=0; i<2; i++) { 
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1,
+                    color: `hsl(${40 + Math.random()*10}, 90%, 70%)`
+                });
+            }
+        }
+
+        function updateParticles() {
+            for(let i = particles.length-1; i>=0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.02; 
+                if(p.life <= 0) particles.splice(i, 1);
+                else {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, Math.random()*2, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const x = (window.innerWidth / 2 - e.clientX) / 45;
+            const y = (window.innerHeight / 2 - e.clientY) / 45;
+            vinylWrapper.style.transform = `rotateY(${x}deg) rotateX(${y}deg) scale(${isDragging?0.97:1})`;
+        });
+
+    </script>
+</body>
+</html>
